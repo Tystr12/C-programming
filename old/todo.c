@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "todo.h"
+#include <time.h>
 
 
 char* createToDoSentence()
