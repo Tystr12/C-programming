@@ -7,7 +7,7 @@
 #include "cJSON.h"
 #include <time.h>
 #include <stdbool.h>
-
+#include <stdint.h>
 
 ToDo* createToDo(const char *description, int priority) 
 {
