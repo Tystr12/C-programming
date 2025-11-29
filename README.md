@@ -101,8 +101,6 @@ This app showcases core C concepts:
 - Handling SIGINT (CTRL+C) safely
 - CLI user interface design
 
-This is more advanced than typical beginner C projects and looks great in a portfolio — especially for systems programming or backend-focused roles.
-
 ## 📄 Planned Improvements (Future Work)
 
 Optional ideas if you want to expand:
