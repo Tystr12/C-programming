@@ -8,6 +8,8 @@
 #include <stdbool.h>
 #include <signal.h>
 #include <time.h>
+#include <string.h>
+#include <errno.h>
 #include "todo.h"
 #include "cJSON.h"
 
@@ -37,6 +39,26 @@ void handleSigint(int sig) {
     
     printf("Application exited.\n");
     exit(0);
+}
+
+// Safe helpers for reading lines and integers
+static int readLine(char *buf, size_t size) {
+    if (!fgets(buf, size, stdin)) return 0;
+    size_t len = strlen(buf);
+    if (len > 0 && buf[len-1] == '\n') buf[len-1] = '\0';
+    return 1;
+}
+
+static int promptInt(const char *prompt, int *out) {
+    char buf[128];
+    if (prompt) printf("%s", prompt);
+    if (!readLine(buf, sizeof(buf))) return 0;
+    char *end = NULL;
+    errno = 0;
+    long val = strtol(buf, &end, 10);
+    if (errno != 0 || end == buf || *end != '\0') return 0;
+    *out = (int)val;
+    return 1;
 }
 
 int main()
@@ -77,10 +99,12 @@ int main()
         printf("3. Exit and Save List\n");
         printf("4. Mark Todo as Complete\n");
         printf("--------------------\n");
-        printf("Choose an option: ");
 
         int choice;
-        scanf("%d", &choice);
+        if (!promptInt("Choose an option: ", &choice)) {
+            printf("Invalid input. Please enter a number.\n");
+            continue;
+        }
 
         switch (choice) 
         {
@@ -93,10 +117,16 @@ int main()
                     printf("Enter description: ");
 
                     char desc[256];
-                    scanf(" %[^\n]", desc);
-                    printf("Enter priority (1-5): ");
+                    if (!readLine(desc, sizeof(desc))) {
+                        printf("Failed to read description.\n");
+                        break;
+                    }
+
                     int priority;
-                    scanf("%d", &priority);
+                    while (!promptInt("Enter priority (1-5): ", &priority)) {
+                        printf("Invalid priority. Enter a number 1-5.\n");
+                    }
+
                     ToDo *newTodo = createToDo(desc, priority);
                     printToDo(newTodo);
 
@@ -118,9 +148,11 @@ int main()
 
                     printf("Todo added successfully!\n");
                     printf("--------------------\n");
-                    printf("Add another todo? (1 = yes, 0 = no): ");
+
                     int addMore;
-                    scanf("%d", &addMore);
+                    while (!promptInt("Add another todo? (1 = yes, 0 = no): ", &addMore)) {
+                        printf("Please enter 1 or 0.\n");
+                    }
                     if (addMore == 0) {
                         runningTodo = false;
                     }
@@ -136,9 +168,10 @@ int main()
                     printToDoList(todoList, todoCount);
                     printJsonList(jsonList);
                     printf("**************************\n");
-                    printf("Return to main menu? (1 = yes, 0 = no): ");
                     int returnMain;
-                    scanf("%d", &returnMain);
+                    while (!promptInt("Return to main menu? (1 = yes, 0 = no): ", &returnMain)) {
+                        printf("Please enter 1 or 0.\n");
+                    }
                     if (returnMain == 1) {
                         runningViewTodo = false;
                     }
@@ -169,9 +202,10 @@ int main()
             case 4:
             {
                 printf("Mark todo as complete selected.\n");
-                printf("Enter the ID of the todo to mark as complete: ");
                 int id;
-                scanf("%d", &id);
+                while (!promptInt("Enter the ID of the todo to mark as complete: ", &id)) {
+                    printf("Invalid ID. Please enter a numeric ID.\n");
+                }
                 if (markToDoAsComplete(id, todoList, todoCount)) {
                     printf("Todo with ID %d marked as complete.\n", id);
                     
@@ -187,9 +221,10 @@ int main()
                 printf("Current ToDo List:\n");
                 printToDoList(todoList, todoCount);
                 printf("--------------------\n");
-                printf("Would you like to delete the todo that is completed? (1 = yes, 0 = no): ");
                 int deleteChoice;
-                scanf("%d", &deleteChoice);
+                while (!promptInt("Would you like to delete the todo that is completed? (1 = yes, 0 = no): ", &deleteChoice)) {
+                    printf("Please enter 1 or 0.\n");
+                }
                 if (deleteChoice == 1) {
                     if (deleteToDoById(id, &todoList, &todoCount)) {
                         printf("Todo with ID %d deleted successfully.\n", id);
