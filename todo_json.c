@@ -154,3 +154,160 @@ void addTodotolist(ToDo ***items, size_t *count, ToDo *newTodo)
     (*items)[*count] = newTodo;
     (*count)++;
 }
+
+int saveToDoList(ToDo **items, size_t count, const char *path)
+{
+    if (!path || !items || count == 0) return 0;
+
+    cJSON *jsonArray = NULL;
+    convertToDoListToJsonArray(items, count, &jsonArray);
+    if (!jsonArray) return 0;
+
+    char *jsonString = cJSON_Print(jsonArray);
+    if (!jsonString) {
+        cJSON_Delete(jsonArray);
+        return 0;
+    }
+
+    FILE *file = fopen(path, "w");
+    if (!file) {
+        printf("Error opening file for writing: %s\n", path);
+        free(jsonString);
+        cJSON_Delete(jsonArray);
+        return 0;
+    }
+
+    fprintf(file, "%s\n", jsonString);
+    fclose(file);
+
+    free(jsonString);
+    cJSON_Delete(jsonArray);
+    return 1;
+}
+
+ToDo **loadToDoListFromJSONFile(const char *path, size_t *out_count)
+{
+    if (!path || !out_count) return NULL;
+    *out_count = 0;
+
+    FILE *file = fopen(path, "r");
+    if (!file) {
+        printf("Error opening file for reading: %s\n", path);
+        return NULL;
+    }
+
+    fseek(file, 0, SEEK_END);
+    long fsize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char *buffer = (char *)malloc(fsize + 1);
+    if (!buffer) {
+        printf("Memory allocation failed\n");
+        fclose(file);
+        return NULL;
+    }
+
+    fread(buffer, 1, fsize, file);
+    buffer[fsize] = '\0';
+    fclose(file);
+
+    cJSON *jsonArray = cJSON_Parse(buffer);
+    free(buffer);
+    if (!jsonArray) {
+        printf("Error parsing JSON\n");
+        return NULL;
+    }
+
+    size_t count = cJSON_GetArraySize(jsonArray);
+    if (count == 0) {
+        cJSON_Delete(jsonArray);
+        return NULL;
+    }
+
+    ToDo **todoList = (ToDo **)malloc(sizeof(ToDo *) * count);
+    if (!todoList) {
+        printf("Memory allocation failed\n");
+        cJSON_Delete(jsonArray);
+        return NULL;
+    }
+
+    for (size_t i = 0; i < count; i++) {
+        cJSON *item = cJSON_GetArrayItem(jsonArray, i);
+        if (item) {
+            todoList[i] = toDoFromJson(item);
+        }
+    }
+
+    *out_count = count;
+    cJSON_Delete(jsonArray);
+    return todoList;
+}
+
+bool fileExists(const char *filename) {
+    FILE *file = fopen(filename, "r");
+    if (file != NULL) {
+        fclose(file);
+        return true;
+    }
+
+    return false;
+
+}
+
+void createFile(const char *filename) {
+    if (!fileExists(filename)) {
+        FILE *file = fopen(filename, "w");
+        if (file != NULL) {
+            fclose(file);
+        } else {
+            printf("Error creating file: %s\n", filename);
+        }   
+    }
+}
+
+bool markToDoAsComplete(int id, ToDo **items, size_t count) {
+    if (!items || count == 0) return false;
+
+    for (size_t i = 0; i < count; i++) {
+        if (items[i] && items[i]->id == id) {
+            items[i]->isComplete = true;
+            items[i]->updated_at = time(NULL);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool deleteToDoById(int id, ToDo ***items, size_t *count) {
+    if (!items || !*items || !count || *count == 0) return false;
+
+    size_t index = SIZE_MAX;
+    for (size_t i = 0; i < *count; i++) {
+        if ((*items)[i] && (*items)[i]->id == id) {
+            index = i;
+            break;
+        }
+    }
+
+    if (index == SIZE_MAX) {
+        return false; // ID not found
+    }
+
+    freeToDo((*items)[index]);
+
+    for (size_t i = index; i < *count - 1; i++) {
+        (*items)[i] = (*items)[i + 1];
+    }
+
+    ToDo **temp = realloc(*items, sizeof(ToDo *) * (*count - 1));
+    if (temp || *count - 1 == 0) {
+        *items = temp;
+        (*count)--;
+        return true;
+    } else {
+        printf("Memory reallocation failed\n");
+        return false;
+    }
+}
+

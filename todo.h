@@ -27,7 +27,7 @@ ToDo *toDoFromJson(const cJSON *json);
 // Convert array of ToDo items to JSON string
 int saveToDoList(ToDo **items, size_t count, const char *path);
 // Load JSON from file
-ToDo **loadToDoList(const char *path, size_t *out_count);
+ToDo **loadToDoListFromJSONFile(const char *path, size_t *out_count);
 void printToDo(const ToDo *todo);
 void printJson(const cJSON *json);
 void addTodotolist(ToDo ***items, size_t *count, ToDo *newTodo);
@@ -35,6 +35,11 @@ void addTodotolist(ToDo ***items, size_t *count, ToDo *newTodo);
 void printToDoList(ToDo **items, size_t count);
 // Make sure the signature matches your implementation exactly:
 void convertToDoListToJsonArray(ToDo **items, size_t count, cJSON **out_json_ptr);
+bool markToDoAsComplete(int id, ToDo **items, size_t count);
 void printJsonList(cJSON *jsonArray);
+bool fileExists(const char *filename);
+void createFile(const char *filename);
+bool deleteToDoById(int id, ToDo ***items, size_t *count);
+
 
 #endif // TODO_H
