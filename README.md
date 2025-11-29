@@ -116,5 +116,6 @@ Optional ideas if you want to expand:
 ## 🎉 Author
 
 **Ty Strong**  
-IT Student & Software Developer  
-HVL Bergen, Norway
+A C project built between tickets at work ;D
+IT Consultatnt & Software Developer  
+IKT Konsulent at Helse Vest IKT
