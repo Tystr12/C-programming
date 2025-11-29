@@ -16,20 +16,25 @@ typedef struct {
     time_t updated_at;
 } ToDo;
 
-/* JSON (de)serialization */
-cJSON *toDoToJSON(const ToDo *todo);
-ToDo *toDoFromJson(const cJSON *json);
-
-/* Convert full todo list to/from JSON string (caller frees returned char*) */
-char *toDoListToString(ToDo **todos, size_t count);
-ToDo **toDoListFromJsonString(const char *json, size_t *out_count);
-
-/* File IO */
-int saveToDoList(ToDo **items, size_t count, const char *path);
-ToDo **loadToDoList(const char *path, size_t *out_count);
-
-/* Memory helpers */
+// Create a new ToDo item
+ToDo* createToDo(const char *description, int priority);
+// Free a ToDo item
 void freeToDo(ToDo *todo);
-void free_todo_list(ToDo **todos, size_t count);
+// Convert ToDo item to JSON object
+cJSON *toDoToJSON(const ToDo *todo);
+// Parse JSON object into ToDo item
+ToDo *toDoFromJson(const cJSON *json);
+// Convert array of ToDo items to JSON string
+int saveToDoList(ToDo **items, size_t count, const char *path);
+// Load JSON from file
+ToDo **loadToDoList(const char *path, size_t *out_count);
+void printToDo(const ToDo *todo);
+void printJson(const cJSON *json);
+void addTodotolist(ToDo ***items, size_t *count, ToDo *newTodo);
+// todo.h (Corrected Prototype)
+void printToDoList(ToDo **items, size_t count);
+// Make sure the signature matches your implementation exactly:
+void convertToDoListToJsonArray(ToDo **items, size_t count, cJSON **out_json_ptr);
+void printJsonList(cJSON *jsonArray);
 
 #endif // TODO_H

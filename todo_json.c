@@ -9,19 +9,30 @@
 #include <stdbool.h>
 
 
-void freeToDo(ToDo *todo) {
-    if (todo) {
-        free(todo->description);
-        free(todo);
+ToDo* createToDo(const char *description, int priority) 
+{
+    ToDo *todo = (ToDo *)malloc(sizeof(ToDo));
+    if (!todo) {
+        printf("Memory allocation failed\n");
+        exit(1);
     }
+
+    todo->id = rand();  // Simple random ID generation
+    todo->description = strdup(description);
+    todo->priority = priority;
+    todo->isComplete = false;
+    todo->created_at = time(NULL);
+    todo->updated_at = time(NULL);
+
+    return todo;
 }
 
-
-cJSON *toDoToJSON(const ToDo *todo) {
-    if (!todo) return NULL;
-
+cJSON *toDoToJSON(const ToDo *todo) 
+{
     cJSON *json = cJSON_CreateObject();
-    if (!json) return NULL;
+    if (!json) {
+        return NULL;
+    }
 
     cJSON_AddNumberToObject(json, "id", todo->id);
     cJSON_AddStringToObject(json, "description", todo->description);
@@ -33,100 +44,113 @@ cJSON *toDoToJSON(const ToDo *todo) {
     return json;
 }
 
-ToDo *toDoFromJson(const cJSON *json) {
-    if (!json) return NULL;
-
-    ToDo *todo = malloc(sizeof(ToDo));
-    if (!todo) return NULL;
-
-    cJSON *idItem = cJSON_GetObjectItemCaseSensitive(json, "id");
-    cJSON *descItem = cJSON_GetObjectItemCaseSensitive(json, "description");
-    cJSON *priorityItem = cJSON_GetObjectItemCaseSensitive(json, "priority");
-    cJSON *isCompleteItem = cJSON_GetObjectItemCaseSensitive(json, "isComplete");
-    cJSON *createdAtItem = cJSON_GetObjectItemCaseSensitive(json, "created_at");
-    cJSON *updatedAtItem = cJSON_GetObjectItemCaseSensitive(json, "updated_at");
-
-    if (cJSON_IsNumber(idItem)) todo->id = idItem->valueint;
-    if (cJSON_IsString(descItem) && (descItem->valuestring != NULL)) {
-        todo->description = strdup(descItem->valuestring);
-    } else {
-        todo->description = strdup("");
+ToDo *toDoFromJson(const cJSON *json) 
+{
+    if (!json) {
+        return NULL;
     }
-    if (cJSON_IsNumber(priorityItem)) todo->priority = priorityItem->valueint;
-    if (cJSON_IsBool(isCompleteItem)) todo->isComplete = cJSON_IsTrue(isCompleteItem);
-    if (cJSON_IsNumber(createdAtItem)) todo->created_at = (time_t)createdAtItem->valuedouble;
-    if (cJSON_IsNumber(updatedAtItem)) todo->updated_at = (time_t)updatedAtItem->valuedouble;
+
+    ToDo *todo = (ToDo *)malloc(sizeof(ToDo));
+    if (!todo) {
+        return NULL;
+    }
+
+    todo->id = cJSON_GetObjectItem(json, "id")->valueint;
+    const char *desc = cJSON_GetObjectItem(json, "description")->valuestring;
+    todo->description = strdup(desc ? desc : "");
+    todo->priority = cJSON_GetObjectItem(json, "priority")->valueint;
+    todo->isComplete = cJSON_GetObjectItem(json, "isComplete")->valueint;
+    todo->created_at = (time_t)cJSON_GetObjectItem(json, "created_at")->valuedouble;
+    todo->updated_at = (time_t)cJSON_GetObjectItem(json, "updated_at")->valuedouble;
 
     return todo;
 }
 
-char *toDoListToString(const ToDo **todos, int count) {
-    cJSON *jsonArray = cJSON_CreateArray();
-    if (!jsonArray) return NULL;
+void freeToDo(ToDo *todo) 
+{
+    if (todo) {
+        free(todo->description);
+        free(todo);
+    }
+}
 
-    for (int i = 0; i < count; i++) {
-        cJSON *todoJson = toDoToJSON(todos[i]);
+void printToDo(const ToDo *todo)
+{
+    if (!todo) return;
+
+    printf("ID: %d\n", todo->id);
+    printf("Description: %s\n", todo->description);
+    printf("Priority: %d\n", todo->priority);
+    printf("Completed: %s\n", todo->isComplete ? "Yes" : "No");
+    printf("Created At: %s", ctime(&todo->created_at));
+    printf("Updated At: %s", ctime(&todo->updated_at));
+}
+
+void printJson(const cJSON *json)
+{
+    if (!json) return;
+
+    char *jsonString = cJSON_Print(json);
+    if (jsonString) {
+        printf("%s\n", jsonString);
+        free(jsonString);
+    }
+}
+
+// Notice the triple asterisk *** here
+// Updated: use cJSON **out param (caller passes &jsonPtr)
+void convertToDoListToJsonArray(ToDo **items, size_t count, cJSON **out_json_ptr)
+{
+    if (!out_json_ptr) return;
+    *out_json_ptr = NULL;
+    if (!items || count == 0) return;
+
+    cJSON *jsonArray = cJSON_CreateArray();
+    if (!jsonArray) return;
+    
+    for (size_t i = 0; i < count; i++) {
+        if (!items[i]) continue;
+        cJSON *todoJson = toDoToJSON(items[i]);
         if (todoJson) {
             cJSON_AddItemToArray(jsonArray, todoJson);
         }
     }
 
-    char *jsonString = cJSON_PrintUnformatted(jsonArray);
-    cJSON_Delete(jsonArray);
-    return jsonString;
+    *out_json_ptr = jsonArray;
 }
 
-// Parse JSON string into heap array of ToDo* (caller must free each and array)
-ToDo **toDoListFromJsonString(const char *json, size_t *out_count) {
-    if (!json) { *out_count = 0; return NULL; }
-    cJSON *arr = cJSON_Parse(json);
-    if (!arr || !cJSON_IsArray(arr)) { if (arr) cJSON_Delete(arr); *out_count = 0; return NULL; }
+void printJsonList(cJSON *jsonArray)
+{
+    if (!jsonArray) return;
 
-    size_t n = cJSON_GetArraySize(arr);
-    ToDo **list = calloc(n, sizeof(ToDo*));
-    if (!list) { cJSON_Delete(arr); *out_count=0; return NULL; }
-
-    size_t idx = 0;
-    cJSON *it = NULL;
-    cJSON_ArrayForEach(it, arr) {
-        ToDo *t = todo_from_json(it);
-        list[idx++] = t;
+    char *jsonString = cJSON_Print(jsonArray);
+    if (jsonString) {
+        printf("%s\n", jsonString);
+        free(jsonString);
     }
-    cJSON_Delete(arr);
-    *out_count = idx;
-    return list;
 }
 
-int saveToDoList(ToDo **items, size_t count, const char *path) {
-    char *json = todo_list_to_json_string(items, count);
-    if (!json) return -1;
-    char tmp[1024];
-    snprintf(tmp, sizeof(tmp), "%s.tmp", path);
-    FILE *f = fopen(tmp, "wb");
-    if (!f) { free(json); return -2; }
-    size_t written = fwrite(json, 1, strlen(json), f);
-    fclose(f);
-    free(json);
-    if (written == 0) return -3;
-    if (rename(tmp, path) != 0) return -4;
-    return 0;
+void printToDoList(ToDo **items, size_t count)
+{
+    if (!items || count == 0) return;
+
+    for (size_t i = 0; i < count; i++) {
+        printToDo(items[i]);
+        printf("--------------------\n");
+    }
 }
 
-ToDo **loadToDoList(const char *path, size_t *out_count) {
-    FILE *f = fopen(path, "rb");
-    if (!f) { *out_count = 0; return NULL; }
-    fseek(f, 0, SEEK_END);
-    long sz = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    if (sz <= 0) { fclose(f); *out_count=0; return NULL; }
+void addTodotolist(ToDo ***items, size_t *count, ToDo *newTodo)
+{
+    if (!items || !count || !newTodo) return;
 
-    char *buf = malloc(sz + 1);
-    if (!buf) { fclose(f); *out_count=0; return NULL; }
-    fread(buf, 1, sz, f);
-    buf[sz] = '\0';
-    fclose(f);
+    ToDo **temp = realloc(*items, sizeof(ToDo *) * (*count + 1));
+    if (!temp) {
+        printf("Memory allocation failed\n");
+        return;
+    }
 
-    ToDo **list = todo_list_from_json_string(buf, out_count);
-    free(buf);
-    return list;
+    *items = temp;
+    (*items)[*count] = newTodo;
+    (*count)++;
 }
