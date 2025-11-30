@@ -2,6 +2,7 @@
 
 // let's say we have a a constant like pi or Inches per pound
 // instead of having magic numbers in the code, we define them as constants
+// directives = preprocessor instructions that are executed before compilation
 #define PI 3.14159
 #define INCHES_PER_POUND 166
 #define RECIPROCAL_OF_PI (1.0 / PI) // if constant contains operators, use parentheses
