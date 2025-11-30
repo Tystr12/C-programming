@@ -61,7 +61,7 @@ static int promptInt(const char *prompt, int *out) {
     return 1;
 }
 
-int main()
+int main(void)
 {
     srand(time(NULL));
     
