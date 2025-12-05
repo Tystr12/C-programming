@@ -12,7 +12,7 @@ int fileExists(const char *filepath)
 
 int main(void) 
 {
-    //WITH POINTERS
+    // WITH POINTERS
 
     char *filename = malloc(256);
     char *directory = malloc(512);
@@ -43,7 +43,7 @@ int main(void)
     free(filename);
     free(directory);
 
-    //WITHOUT POINTERS
+    // WITHOUT POINTERS
 
     char file[256];
     char dir[512];
